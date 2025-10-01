@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Craft Combinations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .elements-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .combine-area {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        
+        .elements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .element {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .element:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+        
+        .element.dragging {
+            opacity: 0.7;
+        }
+        
+        .combine-slots {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        
+        .slot {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            border: 3px dashed rgba(255, 255, 255, 0.3);
+        }
+        
+        .slot.filled {
+            border: 3px solid rgba(255, 255, 255, 0.7);
+        }
+        
+        .combine-button {
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 20px auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .combine-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .combine-button:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .result-area {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .result {
+            font-size: 1.5rem;
+            margin-top: 10px;
+            min-height: 40px;
+        }
+        
+        .discoveries {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .discoveries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .discovery {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 15px 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .discovery.new {
+            animation: pulse 1.5s infinite;
+            border: 2px solid gold;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .plus-sign {
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Infinite Craft Combinations</h1>
+            <p class="subtitle">Combine elements to discover new ones in this endless crafting universe!</p>
+        </header>
+        
+        <div class="game-area">
+            <div class="elements-panel">
+                <h2 class="panel-title">Basic Elements</h2>
+                <div class="elements-grid" id="elementsGrid">
+                    <!-- Elements will be added by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="combine-area">
+                <h2 class="panel-title">Combination Area</h2>
+                <div class="combine-slots">
+                    <div class="slot" id="slot1" data-slot="1"></div>
+                    <div class="plus-sign">+</div>
+                    <div class="slot" id="slot2" data-slot="2"></div>
+                </div>
+                <button class="combine-button" id="combineBtn" disabled>Combine!</button>
+                <div class="result-area">
+                    <div>Result:</div>
+                    <div class="result" id="result"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="discoveries">
+            <h2 class="panel-title">Your Discoveries</h2>
+            <div class="discoveries-grid" id="discoveriesGrid">
+                <!-- Discovered elements will be added here -->
+            </div>
+        </div>
+        
+        <footer>
+            <p>Infinite Craft Combinations &copy; 2023 | Keep combining to discover all possible elements!</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initial elements
+        const initialElements = [
+            { name: "Fire", emoji: "🔥" },
+            { name: "Water", emoji: "💧" },
+            { name: "Earth", emoji: "🌍" },
+            { name: "Air", emoji: "💨" },
+            { name: "Energy", emoji: "⚡" },
+            { name: "Life", emoji: "🌱" },
+            { name: "Metal", emoji: "🔩" },
+            { name: "Stone", emoji: "🪨" }
+        ];
+
+        // Combination recipes
+        const combinations = {
+            "Fire+Water": { name: "Steam", emoji: "💨" },
+            "Water+Earth": { name: "Mud", emoji: "🟫" },
+            "Earth+Air": { name: "Dust", emoji: "💨" },
+            "Air+Fire": { name: "Smoke", emoji: "💨" },
+            "Fire+Earth": { name: "Lava", emoji: "🌋" },
+            "Water+Air": { name: "Rain", emoji: "🌧️" },
+            "Fire+Life": { name: "Phoenix", emoji: "🔥" },
+            "Water+Life": { name: "Algae", emoji: "🌿" },
+            "Earth+Life": { name: "Plant", emoji: "🌿" },
+            "Air+Life": { name: "Bird", emoji: "🐦" },
+            "Fire+Stone": { name: "Metal", emoji: "🔩" },
+            "Water+Stone": { name: "Sand", emoji: "🏖️" },
+            "Metal+Water": { name: "Rust", emoji: "🟫" },
+            "Metal+Fire": { name: "Liquid Metal", emoji: "🔩" },
+            "Steam+Metal": { name: "Engine", emoji: "⚙️" },
+            "Engine+Water": { name: "Steam Boat", emoji: "🚢" },
+            "Steam Boat+Fire": { name: "Steam Train", emoji: "🚂" },
+            "Plant+Earth": { name: "Tree", emoji: "🌳" },
+            "Tree+Fire": { name: "Charcoal", emoji: "🪵" },
+            "Tree+Water": { name: "Fruit", emoji: "🍎" },
+            "Bird+Air": { name: "Sky", emoji: "🌌" },
+            "Sky+Water": { name: "Cloud", emoji: "☁️" },
+            "Cloud+Water": { name: "Rain", emoji: "🌧️" },
+            "Rain+Earth": { name: "Flower", emoji: "🌸" },
+            "Flower+Sun": { name: "Sunflower", emoji: "🌻" },
+            "Mud+Life": { name: "Clay", emoji: "🟫" },
+            "Clay+Fire": { name: "Pottery", emoji: "🏺" },
+            "Pottery+Water": { name: "Vase", emoji: "🏺" },
+            "Sand+Fire": { name: "Glass", emoji: "🥃" },
+            "Glass+Water": { name: "Lens", emoji: "🔍" },
+            "Lens+Sun": { name: "Laser", emoji: "🔦" },
+            "Energy+Metal": { name: "Magnet", emoji: "🧲" },
+            "Magnet+Energy": { name: "Electricity", emoji: "⚡" },
+            "Electricity+Water": { name: "Storm", emoji: "⛈️" },
+            "Storm+Air": { name: "Tornado", emoji: "🌪️" },
+            "Tornado+Water": { name: "Hurricane", emoji: "🌀" },
+            "Life+Stone": { name: "Fossil", emoji: "🦴" },
+            "Fossil+Earth": { name: "Oil", emoji: "🛢️" },
+            "Oil+Fire": { name: "Plastic", emoji: "🪣" },
+            "Plastic+Fire": { name: "Toxic", emoji: "☢️" },
+            "Toxic+Life": { name: "Mutant", emoji: "🧬" },
+            "Mutant+Life": { name: "Alien", emoji: "👽" },
+            "Alien+Earth": { name: "UFO", emoji: "🛸" },
+            "UFO+Air": { name: "Space", emoji: "🚀" },
+            "Space+Fire": { name: "Star", emoji: "⭐" },
+            "Star+Star": { name: "Constellation", emoji: "✨" },
+            "Constellation+Constellation": { name: "Galaxy", emoji: "🌌" },
+            "Galaxy+Galaxy": { name: "Universe", emoji: "🌌" }
+        };
+
+        // Game state
+        let discoveredElements = [...initialElements];
+        let selectedElements = [null, null];
+        
+        // DOM elements
+        const elementsGrid = document.getElementById('elementsGrid');
+        const discoveriesGrid = document.getElementById('discoveriesGrid');
+        const slot1 = document.getElementById('slot1');
+        const slot2 = document.getElementById('slot2');
+        const combineBtn = document.getElementById('combineBtn');
+        const resultDiv = document.getElementById('result');
+        
+        // Initialize the game
+        function initGame() {
+            renderElements();
+            renderDiscoveries();
+            setupEventListeners();
+        }
+        
+        // Render available elements
+        function renderElements() {
+            elementsGrid.innerHTML = '';
+            discoveredElements.forEach(element => {
+                const elementDiv = document.createElement('div');
+                elementDiv.className = 'element';
+                elementDiv.draggable = true;
+                elementDiv.innerHTML = `
+                    <div style="font-size: 2rem;">${element.emoji}</div>
+                    <div>${element.name}</div>
+                `;
+                elementDiv.dataset.name = element.name;
+                elementDiv.dataset.emoji = element.emoji;
+                
+                elementDiv.addEventListener('dragstart', handleDragStart);
+                
+                elementsGrid.appendChild(elementDiv);
+            });
+        }
+        
+        // Render discovered elements
+        function renderDiscoveries() {
+            discoveriesGrid.innerHTML = '';
+            discoveredElements.forEach(element => {
+                const discoveryDiv = document.createElement('div');
+                discoveryDiv.className = 'discovery';
+                discoveryDiv.innerHTML = `
+                    <div style="font-size: 2rem;">${element.emoji}</div>
+                    <div>${element.name}</div>
+                `;
+                discoveriesGrid.appendChild(discoveryDiv);
+            });
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Drag and drop events for slots
+            [slot1, slot2].forEach(slot => {
+                slot.addEventListener('dragover', handleDragOver);
+                slot.addEventListener('drop', handleDrop);
+                slot.addEventListener('click', handleSlotClick);
+            });
+            
+            // Combine button
+            combineBtn.addEventListener('click', combineElements);
+        }
+        
+        // Drag start handler
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                name: this.dataset.name,
+                emoji: this.dataset.emoji
+            }));
+            this.classList.add('dragging');
+        }
+        
+        // Drag over handler
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+        
+        // Drop handler
+        function handleDrop(e) {
+            e.preventDefault();
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const slotIndex = parseInt(this.dataset.slot) - 1;
+            
+            // Remove dragging class from all elements
+            document.querySelectorAll('.element').forEach(el => {
+                el.classList.remove('dragging');
+            });
+            
+            // If slot already has an element, return it to elements
+            if (selectedElements[slotIndex]) {
+                returnElementToPool(selectedElements[slotIndex]);
+            }
+            
+            // Add element to slot
+            selectedElements[slotIndex] = data;
+            this.innerHTML = `
+                <div style="font-size: 3rem;">${data.emoji}</div>
+                <div>${data.name}</div>
+            `;
+            this.classList.add('filled');
+            
+            // Enable combine button if both slots are filled
+            if (selectedElements[0] && selectedElements[1]) {
+                combineBtn.disabled = false;
+            }
+        }
+        
+        // Handle slot click (remove element)
+        function handleSlotClick() {
+            const slotIndex = parseInt(this.dataset.slot) - 1;
+            
+            if (selectedElements[slotIndex]) {
+                returnElementToPool(selectedElements[slotIndex]);
+                selectedElements[slotIndex] = null;
+                this.innerHTML = '';
+                this.classList.remove('filled');
+                combineBtn.disabled = true;
+            }
+        }
+        
+        // Return element to the pool
+        function returnElementToPool(element) {
+            // Element is already in the pool, no need to do anything
+        }
+        
+        // Combine elements
+        function combineElements() {
+            if (!selectedElements[0] || !selectedElements[1]) return;
+            
+            const element1 = selectedElements[0];
+            const element2 = selectedElements[1];
+            
+            // Try both combination orders
+            const combination1 = `${element1.name}+${element2.name}`;
+            const combination2 = `${element2.name}+${element1.name}`;
+            
+            let result = combinations[combination1] || combinations[combination2];
+            
+            if (result) {
+                // Check if we've already discovered this element
+                const alreadyDiscovered = discoveredElements.some(el => el.name === result.name);
+                
+                if (!alreadyDiscovered) {
+                    discoveredElements.push(result);
+                    renderDiscoveries();
+                    
+                    // Highlight the new discovery
+                    const newDiscovery = discoveriesGrid.lastChild;
+                    newDiscovery.classList.add('new');
+                    setTimeout(() => {
+                        newDiscovery.classList.remove('new');
+                    }, 3000);
+                }
+                
+                // Show result
+                resultDiv.innerHTML = `
+                    <div style="font-size: 2rem;">${result.emoji}</div>
+                    <div>${result.name}</div>
+                `;
+            } else {
+                resultDiv.innerHTML = "No combination found! Try different elements.";
+            }
+            
+            // Clear slots
+            selectedElements = [null, null];
+            slot1.innerHTML = '';
+            slot2.innerHTML = '';
+            slot1.classList.remove('filled');
+            slot2.classList.remove('filled');
+            combineBtn.disabled = true;
+            
+            // Re-render elements to include any new ones
+            renderElements();
+        }
+        
+        // Initialize the game when page loads
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
