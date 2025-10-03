@@ -182,6 +182,9 @@
         .result-area {
             margin-top: 15px;
             text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
         }
         
         .result {
@@ -192,6 +195,32 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+        }
+        
+        .result-combination {
+            font-size: 1rem;
+            margin-top: 10px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .result-element {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 5px;
+        }
+        
+        .result-emoji {
+            font-size: 1.5rem;
+        }
+        
+        .result-arrow {
+            margin: 0 10px;
+            font-size: 1.2rem;
         }
         
         .discovery.new {
@@ -242,6 +271,10 @@
             .element-name {
                 font-size: 0.75rem;
             }
+            
+            .result-combination {
+                font-size: 0.9rem;
+            }
         }
         
         /* Instructions for touch users */
@@ -272,6 +305,17 @@
         
         .clear-slots:active {
             transform: scale(0.95);
+        }
+        
+        .success-message {
+            color: #7cfc00;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .failure-message {
+            color: #ff6b6b;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -319,7 +363,10 @@
                 
                 <div class="result-area">
                     <div>Result:</div>
-                    <div class="result" id="result">-</div>
+                    <div class="result" id="result">
+                        <div>Combine elements to see results</div>
+                    </div>
+                    <div class="result-combination" id="resultCombination"></div>
                 </div>
             </div>
         </div>
@@ -420,6 +467,8 @@
         let discoveredElements = [...initialElements];
         let selectedElements = [null, null, null];
         let currentlySelectedElement = null;
+        let lastCombination = null;
+        let lastResult = null;
         
         // DOM elements
         const elementsGrid = document.getElementById('elementsGrid');
@@ -430,6 +479,7 @@
         const combineBtn = document.getElementById('combineBtn');
         const clearSlotsBtn = document.getElementById('clearSlots');
         const resultDiv = document.getElementById('result');
+        const resultCombinationDiv = document.getElementById('resultCombination');
         
         // Initialize the game
         function initGame() {
@@ -547,7 +597,6 @@
                 slot.classList.remove('filled');
             });
             combineBtn.disabled = true;
-            resultDiv.innerHTML = '-';
         }
         
         // Combine elements
@@ -559,20 +608,21 @@
             
             // Try different combinations (1, 2, or 3 elements)
             let result = null;
+            let combinationKey = null;
             
             // Try 3-element combination first
             if (elementsToCombine.length === 3) {
-                const combination3 = `${elementsToCombine[0].name}+${elementsToCombine[1].name}+${elementsToCombine[2].name}`;
-                result = combinations[combination3];
+                combinationKey = `${elementsToCombine[0].name}+${elementsToCombine[1].name}+${elementsToCombine[2].name}`;
+                result = combinations[combinationKey];
                 
                 // Try different orders for 3 elements
                 if (!result) {
-                    const combination3b = `${elementsToCombine[0].name}+${elementsToCombine[2].name}+${elementsToCombine[1].name}`;
-                    result = combinations[combination3b];
+                    combinationKey = `${elementsToCombine[0].name}+${elementsToCombine[2].name}+${elementsToCombine[1].name}`;
+                    result = combinations[combinationKey];
                 }
                 if (!result) {
-                    const combination3c = `${elementsToCombine[1].name}+${elementsToCombine[0].name}+${elementsToCombine[2].name}`;
-                    result = combinations[combination3c];
+                    combinationKey = `${elementsToCombine[1].name}+${elementsToCombine[0].name}+${elementsToCombine[2].name}`;
+                    result = combinations[combinationKey];
                 }
             }
             
@@ -580,9 +630,12 @@
             if (!result && elementsToCombine.length >= 2) {
                 for (let i = 0; i < elementsToCombine.length && !result; i++) {
                     for (let j = i + 1; j < elementsToCombine.length && !result; j++) {
-                        const combination2 = `${elementsToCombine[i].name}+${elementsToCombine[j].name}`;
-                        const combination2b = `${elementsToCombine[j].name}+${elementsToCombine[i].name}`;
-                        result = combinations[combination2] || combinations[combination2b];
+                        combinationKey = `${elementsToCombine[i].name}+${elementsToCombine[j].name}`;
+                        result = combinations[combinationKey];
+                        if (!result) {
+                            combinationKey = `${elementsToCombine[j].name}+${elementsToCombine[i].name}`;
+                            result = combinations[combinationKey];
+                        }
                     }
                 }
             }
@@ -590,10 +643,17 @@
             // Try 1-element combinations (self-combination) if nothing else worked
             if (!result) {
                 for (let i = 0; i < elementsToCombine.length && !result; i++) {
-                    const combination1 = `${elementsToCombine[i].name}+${elementsToCombine[i].name}`;
-                    result = combinations[combination1];
+                    combinationKey = `${elementsToCombine[i].name}+${elementsToCombine[i].name}`;
+                    result = combinations[combinationKey];
                 }
             }
+            
+            // Store the combination and result for display
+            lastCombination = elementsToCombine;
+            lastResult = result;
+            
+            // Display the result
+            displayResult(elementsToCombine, result);
             
             if (result) {
                 // Check if we've already discovered this element
@@ -610,17 +670,6 @@
                         newDiscovery.classList.remove('new');
                     }, 3000);
                 }
-                
-                // Show result
-                resultDiv.innerHTML = `
-                    <div style="font-size: 2rem;">${result.emoji}</div>
-                    <div>${result.name}</div>
-                `;
-            } else {
-                resultDiv.innerHTML = `
-                    <div>No combination found!</div>
-                    <div style="font-size: 0.9rem; margin-top: 5px;">Try different elements</div>
-                `;
             }
             
             // Clear slots
@@ -628,6 +677,66 @@
             
             // Re-render elements to include any new ones
             renderElements();
+        }
+        
+        // Display the combination result
+        function displayResult(elements, result) {
+            if (result) {
+                // Success - show what was created
+                resultDiv.innerHTML = `
+                    <div style="font-size: 2rem;">${result.emoji}</div>
+                    <div>${result.name}</div>
+                    <div class="success-message">New element created!</div>
+                `;
+                
+                // Show the combination that was used
+                let combinationHTML = '';
+                elements.forEach((element, index) => {
+                    combinationHTML += `
+                        <div class="result-element">
+                            <div class="result-emoji">${element.emoji}</div>
+                            <div>${element.name}</div>
+                        </div>
+                    `;
+                    
+                    if (index < elements.length - 1) {
+                        combinationHTML += `<div class="plus-sign">+</div>`;
+                    }
+                });
+                
+                combinationHTML += `<div class="result-arrow">→</div>`;
+                combinationHTML += `
+                    <div class="result-element">
+                        <div class="result-emoji">${result.emoji}</div>
+                        <div>${result.name}</div>
+                    </div>
+                `;
+                
+                resultCombinationDiv.innerHTML = combinationHTML;
+            } else {
+                // Failure - show that no combination was found
+                resultDiv.innerHTML = `
+                    <div>No combination found!</div>
+                    <div class="failure-message">Try different elements</div>
+                `;
+                
+                // Show what was attempted
+                let combinationHTML = 'Tried: ';
+                elements.forEach((element, index) => {
+                    combinationHTML += `
+                        <div class="result-element">
+                            <div class="result-emoji">${element.emoji}</div>
+                            <div>${element.name}</div>
+                        </div>
+                    `;
+                    
+                    if (index < elements.length - 1) {
+                        combinationHTML += `<div class="plus-sign">+</div>`;
+                    }
+                });
+                
+                resultCombinationDiv.innerHTML = combinationHTML;
+            }
         }
         
         // Initialize the game when page loads
